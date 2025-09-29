@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const generateToken = require("./utils/token");
 
  const books = [
     {
@@ -26,6 +27,9 @@ const router = express.Router();
         password: "pass1"
     }
 ];
+
+const activeTokens = [];
+
 router.get("/books", (req, res) => {
     res.json(books);
 });
@@ -36,4 +40,30 @@ router.post("/books", (req, res) => {
   res.status(201).json(newBook);
 });
 
-module.exports = { books, users, router };
+router.post("/login", (req, res) => {
+  const { name, password } = req.body;
+  const user = users.find(u => u.name === name && u.password === password);
+
+  if (!user) {
+    return res.status(401).json({ error: "שם משתמש או סיסמה לא נכונים" });
+  }
+
+  const token = generateToken();
+  activeTokens.push(token);
+
+  res.json({ token });
+});
+
+router.post("/logout", (req, res) => {
+  const { token } = req.body; 
+
+  const index = activeTokens.indexOf(token);
+  if (index !== -1) {
+    activeTokens.splice(index, 1); 
+    return res.json({ message: "התנתקת בהצלחה" });
+  }
+
+  res.status(400).json({ error: "טוקן לא נמצא" });
+});
+
+module.exports = { books, users, router, activeTokens };
